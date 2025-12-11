@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Chatbot Local - index.html</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --accent:#06b6d4;
+      --muted:#94a3b8;
+      --user:#0ea5a4;
+      --bot:#1f2937;
+      --msg-bg:#111827;
+      --radius:14px;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{height:100%;margin:0;background:linear-gradient(180deg,#071024 0%, #071922 100%);color:#e6eef6}
+    .app {
+      max-width:900px;
+      margin:28px auto;
+      height:calc(100vh - 56px);
+      display:flex;
+      flex-direction:column;
+      border-radius:12px;
+      box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+      overflow:hidden;
+      background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01));
+      border: 1px solid rgba(255,255,255,0.03);
+    }
+    header{
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:14px 18px;
+      background:linear-gradient(90deg, rgba(6,182,212,0.06), rgba(99,102,241,0.04));
+      border-bottom:1px solid rgba(255,255,255,0.02);
+    }
+    header h1{font-size:16px;margin:0;color:var(--accent);letter-spacing:0.2px}
+    header p{margin:0;color:var(--muted);font-size:13px}
+    main.chat {
+      flex:1;
+      display:flex;
+      flex-direction:column;
+      padding:16px;
+      gap:12px;
+      overflow:auto;
+      background:
+        radial-gradient(800px 300px at 10% 0%, rgba(6,182,212,0.02), transparent 6%),
+        radial-gradient(600px 300px at 90% 100%, rgba(99,102,241,0.02), transparent 6%);
+    }
+    .messages {display:flex;flex-direction:column;gap:10px; padding-bottom:10px;}
+    .msg {
+      max-width:78%;
+      padding:10px 12px;
+      border-radius:12px;
+      font-size:14px;
+      line-height:1.35;
+      box-shadow: 0 4px 14px rgba(2,6,23,0.45);
+      word-break:break-word;
+    }
+    .msg .meta{font-size:11px;color:var(--muted);margin-bottom:6px}
+    .msg.bot{
+      align-self:flex-start;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border:1px solid rgba(255,255,255,0.03);
+      color:#dbeafe;
+    }
+    .msg.user{
+      align-self:flex-end;
+      background:linear-gradient(180deg, rgba(16,185,129,0.12), rgba(16,185,129,0.06));
+      border:1px solid rgba(16,185,129,0.14);
+      color:#ecfccb;
+    }
+    .typing {
+      display:inline-block;
+      width:54px;
+      height:18px;
+      border-radius:12px;
+      background:rgba(255,255,255,0.03);
+      padding:3px 6px;
+      vertical-align:middle;
+    }
+    .dot {
+      display:inline-block;
+      width:6px;height:6px;border-radius:50%;
+      margin-right:4px;opacity:0.05;
+      animation: blink 1s infinite;
+    }
+    .dot:nth-child(2){ animation-delay:0.12s }
+    .dot:nth-child(3){ animation-delay:0.24s }
+    @keyframes blink { 0%{opacity:0.08} 50%{opacity:0.8} 100%{opacity:0.08} }
+
+    footer.controls{
+      padding:12px;
+      display:flex;
+      gap:8px;
+      align-items:center;
+      border-top:1px solid rgba(255,255,255,0.02);
+      background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00));
+    }
+    .input-wrap{flex:1;display:flex;gap:8px;align-items:center}
+    input#userInput{
+      flex:1;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.03);
+      background:transparent;color:inherit;font-size:14px;
+      outline:none;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    button{background:var(--accent);border:none;padding:10px 14px;border-radius:10px;color:#06202a;font-weight:600;cursor:pointer}
+    button.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-weight:600}
+    .small{font-size:12px;padding:8px 10px;border-radius:8px}
+    .hint{font-size:12px;color:var(--muted);padding:8px 12px}
+    .controls-right{display:flex;gap:8px;align-items:center}
+    .footer-note{padding:10px 16px;font-size:12px;color:var(--muted);border-top:1px solid rgba(255,255,255,0.01)}
+    @media (max-width:520px){
+      header h1{font-size:14px}
+      .app{margin:8px;height:calc(100vh - 16px)}
+      .msg{font-size:13px}
+      button{padding:8px 10px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app" role="application" aria-label="Chatbot local">
+    <header>
+      <div>
+        <h1>Chatbot Local</h1>
+        <p>Funciona 100% no seu navegador — sem API. Comandos: <code>/help</code>, <code>/clear</code>.</p>
+      </div>
+    </header>
+
+    <main class="chat" id="chatMain" aria-live="polite">
+      <div class="messages" id="messages"></div>
+      <div class="footer-note">Conversa salva localmente no seu navegador (localStorage).</div>
+    </main>
+
+    <footer class="controls" role="region" aria-label="Controles">
+      <div class="input-wrap">
+        <input id="userInput" type="text" placeholder="Escreva uma mensagem e pressione Enter..." aria-label="Mensagem do usuário" />
+        <button id="sendBtn" title="Enviar">Enviar</button>
+      </div>
+      <div class="controls-right">
+        <button id="helpBtn" class="secondary small" title="Ajuda">Ajuda</button>
+        <button id="clearBtn" class="secondary small" title="Limpar conversa">Limpar</button>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    (function(){
+      // ====== Configurações do bot ======
+      const BOT_NAME = 'Assistente';
+      const USER_NAME = 'Você';
+      const STORAGE_KEY = 'chatbot_local_conversation_v1';
+
+      // Base de regras: regex simples -> resposta (pode ser string ou função que recebe o texto)
+      const RULES = [
+        { pattern: /^(oi|olá|ola|e ai|ei)\b/i, reply: "Olá! Como posso ajudar você hoje?" },
+        { pattern: /\b(quem é você|o que é você)\b/i, reply: `Eu sou um chatbot local rodando no seu navegador. Não uso APIs externas.` },
+        { pattern: /\b(meu nome é|eu sou)\s+(.+)/i, reply: (m) => `Prazer em conhecer você, ${m[2].trim()}. Em que posso ajudar?` },
+        { pattern: /\b(tempo|clima|vai chover|previsão)\b/i, reply: "Eu não tenho acesso ao tempo em tempo real aqui — mas posso ajudar com orientação genérica sobre como checar o clima." },
+        { pattern: /\b(ajuda|help|o que você sabe)\b/i, reply: "Posso responder perguntas simples, executar comandos: /help (esta ajuda) e /clear (limpar conversa). Tente me perguntar algo." },
+        { pattern: /\b(hora|que horas)\b/i, reply: () => `Agora são ${new Date().toLocaleTimeString()}.` },
+        { pattern: /\b(data|dia|qual é a data|hoje)\b/i, reply: () => `Hoje é ${new Date().toLocaleDateString()}.` },
+        { pattern: /\b(calcul(a|ar)?|quanto é|quanto custa)\b/i, reply: (m, text) => {
+          // tenta extrair expressão aritmética simples
+          const expr = text.match(/(-?[\d\s.+\-*/()%]+)/);
+          if(expr){
+            try{
+              // avaliação segura: permitir só caracteres de matemática
+              const safe = expr[1].replace(/[^0-9+\-*/(). %]/g, '');
+              // eslint-disable-next-line no-eval
+              const val = Function('"use strict";return (' + safe + ')')();
+              if (Number.isFinite(val)) return `Resultado: ${val}`;
+            } catch(e){}
+          }
+          return "Se quiser calcular, escreva uma expressão matemática, ex: 12+34*2";
+        }},
+        { pattern: /\b(abra|abrir)\b.*\b(site|url|página)\b/i, reply: "Como este chatbot roda localmente, não posso abrir outras janelas automaticamente sem sua permissão. Copie e cole links manualmente." },
+        { pattern: /\b(tchau|até mais|falou)\b/i, reply: "Até mais! Se precisar, volte quando quiser." }
+      ];
+
+      const FALLBACKS = [
+        "Desculpe, não entendi. Pode reformular?",
+        "Interessante. Me conte mais.",
+        "Posso ajudar com outra coisa?",
+        "Não tenho uma resposta pronta para isso — quer tentar outro modo de pergunta?"
+      ];
+
+      // ====== Estado e utilitários ======
+      const messagesEl = document.getElementById('messages');
+      const inputEl = document.getElementById('userInput');
+      const sendBtn = document.getElementById('sendBtn');
+      const clearBtn = document.getElementById('clearBtn');
+      const helpBtn = document.getElementById('helpBtn');
+      const chatMain = document.getElementById('chatMain');
+
+      let conversation = []; // each item: {from: 'user'|'bot', text, t: timestamp}
+
+      // carregar conversa salva
+      function loadConversation(){
+        try{
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if(raw){
+            conversation = JSON.parse(raw);
+          } else {
+            conversation = [{from:'bot', text: 'Olá — sou um chatbot local. Digite /help para ver comandos.', t: Date.now()}];
+          }
+        } catch(e){
+          conversation = [{from:'bot', text: 'Olá — sou um chatbot local. Digite /help para ver comandos.', t: Date.now()}];
+        }
+        renderAll();
+      }
+
+      function saveConversation(){
+        try{
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(conversation));
+        } catch(e){
+          console.warn('Não foi possível salvar a conversa:', e);
+        }
+      }
+
+      // render
+      function renderAll(){
+        messagesEl.innerHTML = '';
+        conversation.forEach(item => appendMessageEl(item));
+        scrollToBottom();
+      }
+
+      function appendMessageEl(item){
+        const el = document.createElement('div');
+        el.className = 'msg ' + (item.from === 'user' ? 'user' : 'bot');
+        el.setAttribute('data-time', item.t);
+        const meta = document.createElement('div');
+        meta.className = 'meta';
+        meta.textContent = (item.from === 'user' ? USER_NAME : BOT_NAME) + ' • ' + new Date(item.t).toLocaleTimeString();
+        const txt = document.createElement('div');
+        txt.className = 'text';
+        txt.innerHTML = escapeHtml(item.text).replace(/\n/g,'<br>');
+        el.appendChild(meta);
+        el.appendChild(txt);
+        messagesEl.appendChild(el);
+      }
+
+      function escapeHtml(str){
+        return String(str)
+          .replace(/&/g,'&amp;')
+          .replace(/</g,'&lt;')
+          .replace(/>/g,'&gt;')
+          .replace(/"/g,'&quot;')
+          .replace(/'/g,'&#039;');
+      }
+
+      function scrollToBottom(){
+        // smooth scroll but safe
+        setTimeout(() => {
+          chatMain.scrollTop = chatMain.scrollHeight;
+        }, 50);
+      }
+
+      // send user message
+      function sendMessage(rawText){
+        const text = (rawText || '').trim();
+        if(!text) return;
+        // allow commands
+        if(text.startsWith('/')){
+          handleCommand(text);
+          return;
+        }
+        const userMsg = {from:'user', text, t: Date.now()};
+        conversation.push(userMsg);
+        appendMessageEl(userMsg);
+        saveConversation();
+        inputEl.value = '';
+        scrollToBottom();
+        respondTo(text);
+      }
+
+      // handle simple slash commands
+      function handleCommand(cmd){
+        const c = cmd.split(' ')[0].toLowerCase();
+        if(c === '/help'){
+          const help = "Comandos locais:\n/help — mostra esta mensagem\n/clear — limpa a conversa localmente\nVocê também pode digitar frases comuns como 'oi', 'qual a data', ou calcular algo como 'quanto é 12*3'.";
+          pushBot(help);
+          return;
+        }
+        if(c === '/clear'){
+          if(confirm('Limpar a conversa localmente? Isso removerá o histórico deste navegador.')){
+            conversation = [{from:'bot', text: 'Conversa reiniciada. Digite /help para ver comandos.', t: Date.now()}];
+            saveConversation();
+            renderAll();
+          }
+          return;
+        }
+        pushBot("Comando não reconhecido. Digite /help para ver comandos disponíveis.");
+      }
+
+      // coloca mensagem do bot (com delay e indicador de digitação)
+      function pushBot(textOrFunc){
+        // show typing indicator
+        const typingEl = document.createElement('div');
+        typingEl.className = 'msg bot';
+        typingEl.innerHTML = '<div class="meta">' + BOT_NAME + ' • ' + new Date().toLocaleTimeString() + '</div>' +
+                             '<div class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+        messagesEl.appendChild(typingEl);
+        scrollToBottom();
+
+        // simulate processing time
+        const delay = 400 + Math.min(1200, Math.random()*900);
+        setTimeout(() => {
+          messagesEl.removeChild(typingEl);
+          const botMsg = {from:'bot', text: typeof textOrFunc === 'function' ? textOrFunc() : textOrFunc, t: Date.now()};
+          conversation.push(botMsg);
+          appendMessageEl(botMsg);
+          saveConversation();
+          scrollToBottom();
+        }, delay);
+      }
+
+      // compute response using RULES
+      function respondTo(text){
+        // exact matching rules
+        for(const rule of RULES){
+          const m = text.match(rule.pattern);
+          if(m){
+            const r = rule.reply;
+            if(typeof r === 'function'){
+              const reply = r(m, text);
+              pushBot(reply);
+            } else {
+              pushBot(r);
+            }
+            return;
+          }
+        }
+        // fallback: small attempt to answer if question form
+        if(/\?$/.test(text.trim())){
+          pushBot("Boa pergunta — não tenho informação específica sobre isso aqui, mas posso tentar ajudar com outra pergunta.");
+        } else {
+          // one more attempt: echo with suggestion
+          pushBot(FALLBACKS[Math.floor(Math.random()*FALLBACKS.length)]);
+        }
+      }
+
+      // events
+      sendBtn.addEventListener('click', () => sendMessage(inputEl.value));
+      inputEl.addEventListener('keydown', (e) => {
+        if(e.key === 'Enter' && !e.shiftKey){
+          e.preventDefault();
+          sendMessage(inputEl.value);
+        }
+      });
+      clearBtn.addEventListener('click', () => {
+        if(confirm('Limpar a conversa localmente?')){
+          conversation = [{from:'bot', text: 'Conversa reiniciada. Digite /help para ver comandos.', t: Date.now()}];
+          saveConversation();
+          renderAll();
+        }
+      });
+      helpBtn.addEventListener('click', () => handleCommand('/help'));
+
+      // small accessibility: focus input on click anywhere in chat area
+      chatMain.addEventListener('click', () => inputEl.focus());
+
+      // keyboard focus
+      window.addEventListener('load', () => {
+        loadConversation();
+        inputEl.focus();
+      });
+
+      // expose for debugging (optional)
+      window.chatbotLocal = {
+        conversation,
+        saveConversation,
+        loadConversation
+      };
+    })();
+  </script>
+</body>
+</html>
